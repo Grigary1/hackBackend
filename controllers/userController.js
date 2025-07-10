@@ -3,13 +3,110 @@ import bcrypt, { hash } from 'bcrypt';
 import jwt from 'jsonwebtoken'
 import validator from 'validator'
 import isEmail from "validator/lib/isEmail.js";
+import FormData from 'form-data';
+import fs from 'fs';
+import axios from 'axios'
+
 import nodemailer from "nodemailer";
 import e from "express";
+import DisposalCenter from "../models/DisposalCenter.js";
 const createToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET)
 }
 
 const otps = new Map();
+
+export const addBin = async (req, res) => {
+    console.log("bin")
+    try {
+      const { latitude, longitude, type, name } = req.body;
+  
+      if (!latitude || !longitude) {
+        return res.status(400).json({ success: false, message: "Missing coordinates" });
+      }
+  
+      const bin = new DisposalCenter({
+        name: name || "Unnamed Bin",
+        type: type || "general",
+        location: {
+          type: "Point",
+          coordinates: [longitude, latitude], // GeoJSON format [lng, lat]
+        },
+      });
+  
+      await bin.save();
+  
+      res.status(201).json({ success: true, message: "Bin location saved", data: bin });
+    } catch (error) {
+      console.error("Add Bin Error:", error);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  };
+  
+
+
+export const disposeWaste = async (req, res) => {
+    console.log("Dispose")
+    try {
+      const { latitude, longitude } = req.body;
+  
+      if (!latitude || !longitude) {
+        return res.status(400).json({ success: false, message: "Coordinates required" });
+      }
+  
+      const userLocation = {
+        type: "Point",
+        coordinates: [longitude, latitude], // GeoJSON expects [lng, lat]
+      };
+  
+      const centers = await DisposalCenter.find({
+        location: {
+          $near: {
+            $geometry: userLocation,
+            $maxDistance: 20, // 20 meters radius
+          },
+        },
+      });
+  
+      return res.status(200).json({ success: true, data: centers });
+    } catch (error) {
+      console.error("Geolocation query error:", error);
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+export const readImage = async (req, res) => {
+    try {
+        const image = req.file;
+
+        if (!image) {
+            return res.status(400).json({ success: false, message: "No image received" });
+        }
+
+        const form = new FormData();
+        form.append('image', fs.createReadStream(image.path));  // Use image.path, not the full object
+
+        const response = await axios.post('http://localhost:5000/predict', form, {
+            headers: form.getHeaders(),
+        });
+
+        // Access prediction result from Python
+        const { predicted_class, class_index } = response.data;
+
+        res.status(200).json({
+            success: true,
+            message: "Image processed successfully",
+            predictedClass: predicted_class,
+            classIndex: class_index,
+            filename: image.filename,
+        });
+
+    } catch (error) {
+        console.error("Error during prediction:", error.message);
+        res.status(500).json({ success: false, message: "Prediction failed" });
+    }
+};
+
 
 export const verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
@@ -91,7 +188,7 @@ const loginUser = async (req, res) => {
         const { email, password } = req.body;
         const data = await userModel.findOne({ email });
         if (!data) {
-            return res.status(404).json({ success: false, message: "User does not exists" ,});
+            return res.status(404).json({ success: false, message: "User does not exists", });
         }
         const storedPassword = data.password;
         const match = await bcrypt.compare(password, storedPassword);
@@ -110,7 +207,7 @@ const loginUser = async (req, res) => {
             user: { id: data._id, name: data.name, email: data.email },
         });
     } catch (error) {
-        console.log("Error : ",error.message);
+        console.log("Error : ", error.message);
         return res.json({ success: false, message: error.message });
     }
 
@@ -118,41 +215,41 @@ const loginUser = async (req, res) => {
 
 
 const registerUser = async (req, res) => {
-  try {
-    const { email, password, name, age, location } = req.body;
+    try {
+        const { email, password, name, age, location } = req.body;
 
-    const exists = await userModel.findOne({ email });
-    if (exists) {
-      return res.json({ success: false, message: "User already exists" });
+        const exists = await userModel.findOne({ email });
+        if (exists) {
+            return res.json({ success: false, message: "User already exists" });
+        }
+
+        // Validations
+        if (!validator.isEmail(email)) {
+            return res.json({ success: false, message: "Enter a valid email" });
+        }
+        if (password.length < 6) {
+            return res.json({ success: false, message: "Password too short" });
+        }
+        if (!age || !location) {
+            return res.json({ success: false, message: "Age and location are required" });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = new userModel({
+            name,
+            email,
+            password: hashedPassword,
+            age,
+            location,
+        });
+
+        await user.save();
+
+        return res.json({ success: true, message: "User added" });
+    } catch (error) {
+        return res.json({ success: false, message: error.message });
     }
-
-    // Validations
-    if (!validator.isEmail(email)) {
-      return res.json({ success: false, message: "Enter a valid email" });
-    }
-    if (password.length < 6) {
-      return res.json({ success: false, message: "Password too short" });
-    }
-    if (!age || !location) {
-      return res.json({ success: false, message: "Age and location are required" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = new userModel({
-      name,
-      email,
-      password: hashedPassword,
-      age,
-      location,
-    });
-
-    await user.save();
-
-    return res.json({ success: true, message: "User added" });
-  } catch (error) {
-    return res.json({ success: false, message: error.message });
-  }
 };
 
 

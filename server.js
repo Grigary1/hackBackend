@@ -6,7 +6,7 @@ import connectDB from './config/mongodb.js'; // Assuming you have a connectDB fu
 import userRouter from './routes/userRouter.js'
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: '*' }));
 app.use(express.json()); // Parse JSON request bodies
 
 const server = http.createServer(app); // Create HTTP server instance
@@ -21,9 +21,10 @@ async function startServer() {
         await connectDB(); // Connect to MongoDB
         const PORT = process.env.PORT || 8000;
 
-        server.listen(PORT, () => {
+        server.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Server running on port ${PORT}`);
         });
+
 
     } catch (error) {
         console.error("❌ Failed to connect:", error.message);
@@ -32,5 +33,5 @@ async function startServer() {
 }
 
 
-    app.use('/api/user', userRouter);
-    startServer();
+app.use('/api/user', userRouter);
+startServer();
