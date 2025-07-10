@@ -1,5 +1,5 @@
 import express from 'express';
-import { adminLogin, loginUser, sendOtp, verifyOtp,registerUser, readImage, disposeWaste, addBin } from '../controllers/userController.js';
+import { adminLogin, loginUser, sendOtp, verifyOtp,registerUser, readImage, disposeWaste, addBin, checkMe } from '../controllers/userController.js';
 import upload from '../middleware/multer.js';
 
 
