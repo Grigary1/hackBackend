@@ -16,6 +16,16 @@ const createToken = (id) => {
 
 const otps = new Map();
 
+export const checkMe=async(req,res)=>{
+    try {
+        return res.status(200).json({
+            success:true,message:"working"
+        })
+    } catch (error) {
+        
+    }
+}
+
 export const addBin = async (req, res) => {
     console.log("bin")
     try {

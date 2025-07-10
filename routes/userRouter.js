@@ -14,5 +14,6 @@ userRouter.post('/admin',adminLogin);
 userRouter.post('/image', upload.single('image'), readImage);
 userRouter.post('/dispose',disposeWaste)
 userRouter.post('/bin',addBin)
+userRouter.get('/check',checkMe)
 
 export default userRouter;
