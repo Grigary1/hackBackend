@@ -10,6 +10,15 @@ import axios from 'axios'
 import nodemailer from "nodemailer";
 import e from "express";
 import DisposalCenter from "../models/DisposalCenter.js";
+
+
+import path from "path";
+import { spawn } from "child_process";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const createToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET)
 }
@@ -85,38 +94,44 @@ export const disposeWaste = async (req, res) => {
     }
   };
 
-export const readImage = async (req, res) => {
-    try {
-        const image = req.file;
 
-        if (!image) {
-            return res.status(400).json({ success: false, message: "No image received" });
-        }
-
-        const form = new FormData();
-        form.append('image', fs.createReadStream(image.path));  // Use image.path, not the full object
-
-        const response = await axios.post('http://localhost:5000/predict', form, {
-            headers: form.getHeaders(),
-        });
-
-        // Access prediction result from Python
-        const { predicted_class, class_index } = response.data;
-
-        res.status(200).json({
-            success: true,
-            message: "Image processed successfully",
-            predictedClass: predicted_class,
-            classIndex: class_index,
-            filename: image.filename,
-        });
-
-    } catch (error) {
-        console.error("Error during prediction:", error.message);
-        res.status(500).json({ success: false, message: "Prediction failed" });
+  export const readImage = async (req, res) => {
+    const image = req.file;
+  
+    if (!image) {
+      return res.status(400).json({ error: "No image uploaded" });
     }
-};
-
+  
+    const pythonScript = path.join(__dirname, "..", "py-model-server", "predict.py");
+    const py = spawn("python3", [pythonScript, image.path]);
+  
+    let result = "";
+    let error = "";
+  
+    py.stdout.on("data", (data) => {
+      result += data.toString();
+    });
+  
+    py.stderr.on("data", (data) => {
+      error += data.toString();
+    });
+  
+    py.on("close", (code) => {
+      // Delete uploaded file after prediction
+      fs.unlinkSync(image.path);
+  
+      if (code !== 0 || error) {
+        return res.status(500).json({ error: error || "Prediction failed" });
+      }
+  
+      try {
+        const output = JSON.parse(result);
+        res.json(output);
+      } catch (err) {
+        res.status(500).json({ error: "Invalid response from Python script" });
+      }
+    });
+  };
 
 export const verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
