@@ -3,7 +3,7 @@ import cors from 'cors';
 import http from 'http';
 import 'dotenv/config';
 import connectDB from './config/mongodb.js'; // Assuming you have a connectDB function
-import userRouter from './routes/userRouter.js';
+import userRouter from './routes/userRouter.js'
 
 const app = express();
 app.use(cors());
@@ -31,5 +31,6 @@ async function startServer() {
     }
 }
 
-app.use('/api/user', userRouter);
-startServer();
+
+    app.use('/api/user', userRouter);
+    startServer();

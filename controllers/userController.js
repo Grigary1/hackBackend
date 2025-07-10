@@ -61,7 +61,7 @@ export const sendOtp = async (req, res) => {
 
         // Email content
         const mailOptions = {
-            from: '"G-Cart" grigusss23@gmail.com',
+            from: '"DropIt" grigusss23@gmail.com',
             to: email,
             subject: 'Your OTP Code',
             text: `Your OTP code is: ${otp}. It is valid for 5 minutes.`,
@@ -116,33 +116,46 @@ const loginUser = async (req, res) => {
 
 };
 
-const registerUser = async (req, res) => {
-    try {
-        const { email, password, name } = req.body;
-        const exists = await userModel.findOne({ email });
-        if (exists) {
-            return res.json({ success: false, message: "User already exists" });
-        }
-        //validating
-        if (!validator.isEmail(email)) {
-            return res.json({ success: false, message: "Enter valid email" });
-        }
-        if (password.length < 6) {
-            return res.json({ success: false, message: "Enter strong password" });
-        }
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new userModel({
-            name, email, password: hashedPassword,
-        })
-        await user.save();
-        return res.json({ success: true, message: "User added" })
 
-    } catch (error) {
-        return res.json({ success: false, message: error });
+const registerUser = async (req, res) => {
+  try {
+    const { email, password, name, age, location } = req.body;
+
+    const exists = await userModel.findOne({ email });
+    if (exists) {
+      return res.json({ success: false, message: "User already exists" });
     }
+
+    // Validations
+    if (!validator.isEmail(email)) {
+      return res.json({ success: false, message: "Enter a valid email" });
+    }
+    if (password.length < 6) {
+      return res.json({ success: false, message: "Password too short" });
+    }
+    if (!age || !location) {
+      return res.json({ success: false, message: "Age and location are required" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = new userModel({
+      name,
+      email,
+      password: hashedPassword,
+      age,
+      location,
+    });
+
+    await user.save();
+
+    return res.json({ success: true, message: "User added" });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
 };
 
-export default registerUser;
+
 
 
 
