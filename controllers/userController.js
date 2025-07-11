@@ -97,7 +97,7 @@ export const disposeWaste = async (req, res) => {
 
   export const readImage = async (req, res) => {
     const image = req.file;
-  
+    console.log("Reached");
     if (!image) {
       return res.status(400).json({ error: "No image uploaded" });
     }
