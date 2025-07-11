@@ -1,6 +1,7 @@
 import express from 'express';
-import { adminLogin, loginUser, sendOtp, verifyOtp,registerUser, readImage, disposeWaste, addBin, checkMe } from '../controllers/userController.js';
+import { adminLogin, loginUser, sendOtp, verifyOtp,registerUser, readImage, disposeWaste, addBin, checkMe, submitWasteInfo } from '../controllers/userController.js';
 import upload from '../middleware/multer.js';
+import { userAuth } from '../middleware/userAuth.js';
 
 
 
@@ -11,9 +12,10 @@ userRouter.post('/verify-otp',verifyOtp);
 userRouter.post('/register',registerUser);
 userRouter.post('/login',loginUser);
 userRouter.post('/admin',adminLogin);
-userRouter.post('/image', upload.single('image'), readImage);
+userRouter.post('/image', userAuth,upload.single('image'), readImage);
 userRouter.post('/dispose',disposeWaste)
 userRouter.post('/bin',addBin)
 userRouter.get('/check',checkMe)
+userRouter.post('/submitwaste',submitWasteInfo)
 
 export default userRouter;

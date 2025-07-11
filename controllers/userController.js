@@ -15,6 +15,7 @@ import DisposalCenter from "../models/DisposalCenter.js";
 import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
+import WasteSell from "../models/WasteSell.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,36 @@ export const checkMe=async(req,res)=>{
         
     }
 }
+
+export const submitWasteInfo = async (req, res) => {
+  try {
+    const { sellerName, quantity, location, pricePerKg, phoneNumber, landmark } = req.body;
+
+    if (!sellerName || !quantity || !location || !pricePerKg || !phoneNumber) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    if (quantity < 1) {
+      return res.status(400).json({ message: "Minimum quantity is 1 kg." });
+    }
+
+    const newEntry = new WasteSell({
+      sellerName,
+      quantity,
+      location,
+      pricePerKg,
+      phoneNumber,
+      landmark,
+    });
+
+    await newEntry.save();
+
+    res.status(201).json({ message: "Waste information submitted successfully." });
+  } catch (error) {
+    console.error("Error submitting waste info:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
 
 export const addBin = async (req, res) => {
     console.log("bin")

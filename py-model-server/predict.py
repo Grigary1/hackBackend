@@ -7,7 +7,7 @@ from torchvision import models, transforms
 from PIL import Image
 import os
 
-IMG_PATH = sys.argv[1]  # Get image path from Node.js
+IMG_PATH = sys.argv[1]  
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "waste_model.pth")
 NUM_CLASSES = 4
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
